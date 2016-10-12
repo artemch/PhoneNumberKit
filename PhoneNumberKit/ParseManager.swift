@@ -134,11 +134,27 @@ class ParseManager {
 Thread safe Swift array generic that locks on write.
 */
 class SynchronizedArray<T> {
-    var array: [T] = []
+    
+    private var _array: [T] = []
+    private(set) var array: [T] {
+        set {
+            dispatch_async(self.accessQueue) {
+                self._array = newValue
+            }
+        }
+        get {
+            var result: [T]!
+            dispatch_sync(accessQueue, {
+                result = self._array
+            })
+            return result
+        }
+    }
     private let accessQueue = dispatch_queue_create("SynchronizedArrayAccess", DISPATCH_QUEUE_SERIAL)
+    
     func append(newElement: T) {
         dispatch_async(self.accessQueue) {
-            self.array.append(newElement)
+            self._array.append(newElement)
         }
     }
 }
